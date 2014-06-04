@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Built-By: simon
+Build-Jdk: 1.8.0
+Specification-Title: nosql-tests
+Specification-Version: 1.0-SNAPSHOT
+Specification-Vendor: JBoss Inc.
+Implementation-Title: nosql-tests
+Implementation-Version: 1.0-SNAPSHOT
+Implementation-Vendor-Id: org.jboss.sdb.nosqltest
+Implementation-Vendor: JBoss Inc.
+Created-By: Maven Integration for Eclipse
+
