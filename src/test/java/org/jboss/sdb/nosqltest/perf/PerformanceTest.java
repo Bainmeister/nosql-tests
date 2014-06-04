@@ -46,8 +46,8 @@ public class PerformanceTest {
         //DB Parameters
         final int keyLength = 2;
         final int dbType = DBWorker.FDB;
-        final int chanceOfRead = 100;
-        final int chanceOfWrite = 0;
+        final int chanceOfRead = 0;
+        final int chanceOfWrite = 100;
         final int chanceOfReadModWrite = 0;
         final int minTransactionSize = 1;
         final int maxTransactionSize = 1;

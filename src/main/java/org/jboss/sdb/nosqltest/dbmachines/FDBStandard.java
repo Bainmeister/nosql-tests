@@ -61,6 +61,8 @@ public class FDBStandard implements DBMachine {
 		//Get some keys for the transaction
 		final List<String> keys = KeyGenerator.randomKeys(transactionSize, keyLength);
 			
+		record.setStartMillis(System.nanoTime());
+		
 		//FDB API
 	    return db.run(new Function<Transaction, ActionRecord>() {
 	    		    	
@@ -69,7 +71,6 @@ public class FDBStandard implements DBMachine {
 		    
 		    	record.setAttemptsTaken(record.getAttemptsTaken()+1);
 		    	
-		    	record.setStartMillis(System.nanoTime());
 		    	//For every key in the list do a read in this transaction
 		    	for(String key: keys )
 		    		decodeInt(tr.get(Tuple.from("class", key).pack()).get());	
@@ -91,6 +92,8 @@ public class FDBStandard implements DBMachine {
 		
 		final ActionRecord record = new ActionRecord();
 		
+		record.setStartMillis(System.nanoTime());
+		
 		//Use the DB API to read a single line.
 	    return db.run(new Function<Transaction, ActionRecord>() {
 	    	
@@ -100,7 +103,6 @@ public class FDBStandard implements DBMachine {
 		    	
 		    	record.setAttemptsTaken(record.getAttemptsTaken()+1);
 		    	
-		    	record.setStartMillis(System.nanoTime());
 		    	//For every key in the list do a read in this transaction
 		    	for(String key: keys ){
 		    		tr.set(Tuple.from("class", key).pack(), encodeInt(-1));
@@ -120,6 +122,8 @@ public class FDBStandard implements DBMachine {
 		final List<String> keys = KeyGenerator.randomKeys(transactionSize, keyLength);
 		final ActionRecord record = new ActionRecord();
 		
+		record.setStartMillis(System.nanoTime());
+		
 	    return db.run(new Function<Transaction, ActionRecord>() {
 	    	
 	    	/** START TRANSACTION *********************/
@@ -127,7 +131,6 @@ public class FDBStandard implements DBMachine {
 		    	
 		    	record.setAttemptsTaken(record.getAttemptsTaken()+1);
 		    	
-		    	record.setStartMillis(System.nanoTime());
 		    	for(String key: keys ){
 		    		tr.set(Tuple.from("class", key).pack(), encodeInt(decodeInt(tr.get(Tuple.from("class", key).pack()).get()) + 1));
 		    	}

@@ -80,7 +80,7 @@ public class DBWorker implements Worker<Void>{
     	
     	//TODO fix this!
     	//Call the relevant method, depending upon ChanceOfProcess and the transactionSize
-    	if (rand1< 100){
+    	if (rand1< 0){
     		record = machine.read(keyLength, transactionSize);
     	}else if(rand1 < 0){
     		record = machine.write(keyLength, transactionSize);
@@ -127,4 +127,5 @@ public class DBWorker implements Worker<Void>{
 	public long getFiniTimeMillis() {
 		return finiTimeMillis;
 	}
+
 }
