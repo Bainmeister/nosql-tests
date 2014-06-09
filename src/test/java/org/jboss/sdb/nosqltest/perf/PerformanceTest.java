@@ -33,45 +33,76 @@ import io.narayana.perf.Result;
  */
 public class PerformanceTest {
 
+    //***********************************************************
+    //STANDARD PARAMETERS    
+    final int threadCount = 10;
+    final int batchSize = 1;
+    final int numberOfCalls = 1000;
+    
+    
+    //DB Parameters
+    final int keyLength = 2;
+    final int dbType = DBWorker.FDB;
+    final int chanceOfRead = 0;
+    final int chanceOfWrite = 0;
+    final int chanceOfReadModifyWrite = 100;
+    final int minTransactionSize = 1;
+    final int maxTransactionSize = 1;   
+    
+    
+    //TODO - Size of Read, Size of Write (Min/Max)
+    //***********************************************************
+	
+    
+    @Test
+    public void testPerformanceTester() {
+    	
+        
+        DBWorker<Void> worker = new DBWorker<Void>(keyLength, 
+        								dbType, 
+        								chanceOfRead, 
+        								chanceOfWrite, 
+        								chanceOfReadModifyWrite, 
+        								minTransactionSize,
+        								maxTransactionSize);
+        
+        //Run the test
+        Result measurement = new Result(threadCount, numberOfCalls, batchSize).measure(worker, worker, 100);
+        
+        
+        System.out.println("Threads: " + measurement.getThreadCount());
+        System.out.println("Calls: " + measurement.getNumberOfCalls());
+        System.out.println("Batch Size: " + measurement.getBatchSize());
+        System.out.println("Thoroughput: " + measurement.getThroughput());
+        System.out.println("millies: " + measurement.getTotalMillis());
+        
+        
+    }
+    
+    
+    
+    /*
     @Test
     public void testPerformanceTester() {
 
-        //***********************************************************
-        //EDIT THESE PARAMETERS
-        final int threadCount = 10;
-        final int batchSize = 1;
-        final int numberOfCalls = 100;
+
         
-        
-        //DB Parameters
-        final int keyLength = 2;
-        final int dbType = DBWorker.FDB;
-        final int chanceOfRead = 0;
-        final int chanceOfWrite = 100;
-        final int chanceOfReadModWrite = 0;
-        final int minTransactionSize = 1;
-        final int maxTransactionSize = 1;
-       
-        
-        //TODO - Size of Read, Size of Write (Min/Max)
-        //***********************************************************
-       
-       PerformanceTester<Void> tester = new PerformanceTester<Void>(10, batchSize);
-       DBWorker worker = new DBWorker(dbType);
+        PerformanceTester<Void> tester = new PerformanceTester<Void>(10, batchSize);
+        DBWorker<Void> worker = new DBWorker<Void>(keyLength, 
+        								dbType, 
+        								chanceOfRead, 
+        								chanceOfWrite, 
+        								chanceOfReadModifyWrite, 
+        								minTransactionSize,
+        								maxTransactionSize);
         
         //Set the options
-        DBResult<Void> opts = new DBResult<Void>(threadCount, numberOfCalls);
-        //opts.setChanceOfRead(chanceOfRead);
-        //opts.setChanceOfWrite(chanceOfWrite);
-        //opts.setChanceOfReadModWrite(chanceOfReadModWrite);
-        //opts.setMinTransactionSize(minTransactionSize);
-        //opts.setMaxTransactionSize(maxTransactionSize);
-        //opts.setKeyLength(keyLength);
-        //opts.setDbType(dbType);
+        Result<Void> opts = new Result<Void>(threadCount, numberOfCalls);
         
-  
+        
         try {
         	
+        	//tester.measureThroughput(lifecycle, workload, callCount, threadCount, batchSize, warmUpCallCount)
         	Result<Void> res = tester.measureThroughput(worker, opts);
             long start = System.nanoTime();
             long millis = (System.nanoTime() - start) / 1000000L;
@@ -86,5 +117,7 @@ public class PerformanceTest {
             tester.fini();
         }
     }
-   
+	*/
+    
+    
 }

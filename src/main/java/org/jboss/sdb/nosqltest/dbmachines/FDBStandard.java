@@ -60,8 +60,6 @@ public class FDBStandard implements DBMachine {
 		
 		//Get some keys for the transaction
 		final List<String> keys = KeyGenerator.randomKeys(transactionSize, keyLength);
-			
-		record.setStartMillis(System.nanoTime());
 		
 		//FDB API
 	    return db.run(new Function<Transaction, ActionRecord>() {
@@ -74,8 +72,6 @@ public class FDBStandard implements DBMachine {
 		    	//For every key in the list do a read in this transaction
 		    	for(String key: keys )
 		    		decodeInt(tr.get(Tuple.from("class", key).pack()).get());	
-		    	
-		    	record.setEndMillis(System.nanoTime());
 		    	
 				return record;
 		    }
