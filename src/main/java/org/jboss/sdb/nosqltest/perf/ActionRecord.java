@@ -28,26 +28,10 @@ package org.jboss.sdb.nosqltest.perf;
  */
 public class ActionRecord {
 
-	private long startMillis = -1;
-	private long endMillis = -1;
 	private int attemptsTaken = 0;
-	private boolean success = false;
+	private boolean success = true;
 	
 	//Methods for getting & setting 
-	public long getStartMillis() {
-		return startMillis;
-	}
-	public void setStartMillis(long startMillis) {
-		this.startMillis = startMillis;
-	}
-	
-	public long getEndMillis() {
-		return endMillis;
-	}
-	public void setEndMillis(long endMillis) {
-		this.endMillis = endMillis;
-	}
-	
 	public int getAttemptsTaken() {
 		return attemptsTaken;
 	}

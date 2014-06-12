@@ -42,7 +42,7 @@ public class PerformanceTest {
     
     //DB Parameters
     final int keyLength = 2;
-    final int dbType = DBWorker.FDB;
+    final int dbType = DBWorker.FDB_ASYNC_NO_RETRY;
     final int chanceOfRead = 0;
     final int chanceOfWrite = 0;
     final int chanceOfReadModifyWrite = 100;
@@ -57,67 +57,16 @@ public class PerformanceTest {
     @Test
     public void testPerformanceTester() {
     	
-        
-        DBWorker<Void> worker = new DBWorker<Void>(keyLength, 
-        								dbType, 
-        								chanceOfRead, 
-        								chanceOfWrite, 
-        								chanceOfReadModifyWrite, 
-        								minTransactionSize,
-        								maxTransactionSize);
+        System.out.println("Begginging Test");
+    	
+        //Setup the template worker
+        DBWorker<Void> worker = new DBWorker<Void>(keyLength, dbType, chanceOfRead,	chanceOfWrite, chanceOfReadModifyWrite, minTransactionSize, maxTransactionSize);
         
         //Run the test
-        Result measurement = new Result(threadCount, numberOfCalls, batchSize).measure(worker, worker, 100);
+        Result<Void> measurement = new Result<Void>(threadCount, numberOfCalls, batchSize).measure(worker, worker, 100);
         
-        
-        System.out.println("Threads: " + measurement.getThreadCount());
-        System.out.println("Calls: " + measurement.getNumberOfCalls());
-        System.out.println("Batch Size: " + measurement.getBatchSize());
-        System.out.println("Thoroughput: " + measurement.getThroughput());
-        System.out.println("millies: " + measurement.getTotalMillis());
-        
+        System.out.println(measurement);
         
     }
-    
-    
-    
-    /*
-    @Test
-    public void testPerformanceTester() {
-
-
-        
-        PerformanceTester<Void> tester = new PerformanceTester<Void>(10, batchSize);
-        DBWorker<Void> worker = new DBWorker<Void>(keyLength, 
-        								dbType, 
-        								chanceOfRead, 
-        								chanceOfWrite, 
-        								chanceOfReadModifyWrite, 
-        								minTransactionSize,
-        								maxTransactionSize);
-        
-        //Set the options
-        Result<Void> opts = new Result<Void>(threadCount, numberOfCalls);
-        
-        
-        try {
-        	
-        	//tester.measureThroughput(lifecycle, workload, callCount, threadCount, batchSize, warmUpCallCount)
-        	Result<Void> res = tester.measureThroughput(worker, opts);
-            long start = System.nanoTime();
-            long millis = (System.nanoTime() - start) / 1000000L;
-
-           
-            System.out.printf("Throughput "+ res.getThroughput());
-            
-            //System.out.printf("Test performance for %d!: %d calls / second (total time: %d ms versus %d ms)%n",
-            //        opts.getNumberOfCalls(), opts.getThroughput(), opts.getTotalMillis(), millis);
-
-        } finally {
-            tester.fini();
-        }
-    }
-	*/
-    
-    
+ 
 }

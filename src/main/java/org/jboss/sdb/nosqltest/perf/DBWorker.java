@@ -29,6 +29,8 @@ import io.narayana.perf.Worker;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.jboss.sdb.nosqltest.dbmachines.DBMachine;
+import org.jboss.sdb.nosqltest.dbmachines.FDBASyncNoRetry;
+import org.jboss.sdb.nosqltest.dbmachines.FDBBlockingNoRetry;
 import org.jboss.sdb.nosqltest.dbmachines.FDBStandard;
 
 
@@ -47,9 +49,12 @@ public class DBWorker<T> implements Worker<T>{
 	private long finiTimeMillis;
 	
 	final public static int NOT_SET= 0;
+	
 	final public static int FDB = 10;
-	final public static int FDB_NO_RETRY=11;
-	final public static int FDB_COMPENSATION =12;
+	final public static int FDB_BLOCK_NO_RETRY=11;
+	final public static int FDB_ASYNC_NO_RETRY=12;
+	final public static int FDB_COMPENSATION =13;
+	
 	final public static int MONGODB = 20;
 	final public static int MONGODB_COMPENSATION = 20;
 	
@@ -81,10 +86,10 @@ public class DBWorker<T> implements Worker<T>{
 		//Set up the relevant Database Machine
 		if (dbType == FDB){
 			machine = new FDBStandard();
-		}else if (dbType == FDB_NO_RETRY){
-			//machine = new FDBNoRetry();
-		}else if (dbType == FDB_COMPENSATION){
-			//machine = new FDBCompensation();
+		}else if (dbType == FDB_BLOCK_NO_RETRY){
+			machine = new FDBBlockingNoRetry();
+		}else if (dbType == FDB_ASYNC_NO_RETRY){
+			machine = new FDBASyncNoRetry();
 		}else if (dbType == MONGODB){
 			//machine = new MongoDBMachine();
 		}			
@@ -95,6 +100,9 @@ public class DBWorker<T> implements Worker<T>{
 	
 	public T doWork(T context, int niters, Result<T> opts) {
     	
+		//No errors yet - ignore past errors - only interested in this run
+		opts.setErrorCount(0);
+		
 		//Get configuration
     	final int keyLength = this.keyLength;
     	final int transactionSize = ThreadLocalRandom.current().nextInt(this.maxTransactionSize)+1;  //Range 1 - Max rather than 0 to Max-1
@@ -116,9 +124,16 @@ public class DBWorker<T> implements Worker<T>{
     		record = machine.readModifyWrite(keyLength, transactionSize);
     	}
     	
-    	long timeTaken  = (record.getEndMillis() - record.getStartMillis());
     	
-    	System.out.println("Transaction Size: " + transactionSize + "  Attemps: "+ record.getAttemptsTaken() +" Start Time: "+ record.getStartMillis() +" Time Taken: "+ timeTaken);
+    	
+    	if (!record.isSuccess()){
+    		
+    		opts.incrementErrorCount();
+
+    	}
+    		
+    	
+    	//System.out.println("Transaction Size: " + transactionSize + "  Attempts: "+ record.getAttemptsTaken());
     	
         workTimeMillis = System.currentTimeMillis();
 

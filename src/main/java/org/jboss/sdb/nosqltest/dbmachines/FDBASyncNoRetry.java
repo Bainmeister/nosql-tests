@@ -28,8 +28,10 @@ import org.jboss.sdb.nosqltest.perf.ActionRecord;
 
 import com.foundationdb.Database;
 import com.foundationdb.FDB;
+import com.foundationdb.FDBException;
 import com.foundationdb.Transaction;
 import com.foundationdb.async.Function;
+import com.foundationdb.async.Future;
 import com.foundationdb.tuple.Tuple;
 
 
@@ -38,7 +40,7 @@ import com.foundationdb.tuple.Tuple;
  *
  * A FoundationDB specific implementation of DBMachine. Runs the API as standard.
  */
-public class FDBStandard implements DBMachine {
+public class FDBASyncNoRetry implements DBMachine {
 
     //private Database db;
     private FDB fdb;
@@ -57,90 +59,97 @@ public class FDBStandard implements DBMachine {
 	public ActionRecord read(int keyLength, int transactionSize) {
 		
 		final ActionRecord record = new ActionRecord();
-		
-		//Get some keys for the transaction
 		final List<String> keys = KeyGenerator.randomKeys(transactionSize, keyLength);
 		
-		//FDB API
-	    return db.run(new Function<Transaction, ActionRecord>() {
-	    	
-	    	//TODO failure is possible - add a check
-	    	
-	    	/** START TRANSACTION *********************/
-		    public ActionRecord apply(Transaction tr) {
-		    
-		    	record.setAttemptsTaken(record.getAttemptsTaken()+1);
-		    	
-		    	//For every key in the list do a read in this transaction
-		    	for(String key: keys )
-		    		decodeInt(tr.get(Tuple.from("class", key).pack()).get());	
-		    	
-				return record;
-		    }
-		    /** END TRANSACTION   *********************/
-	    
-	    });	
+		Transaction tr1 = db.createTransaction();
+		record.setSuccess(true);
+		
+		//Do it via blocking (GET) (Pessimistic locking)
+		try {
+		
+			for(String key: keys ){
+				decodeInt(tr1.get(Tuple.from("class", key).pack()).get());
+			}
+			
+			//Blocks until a value is set on this Future and returns it.
+			tr1.commit().get();
+			record.setAttemptsTaken(record.getAttemptsTaken()+1);
+			
+		}catch (FDBException e){
+
+			//Fail!
+			record.setSuccess(false);
+			
+		}
+		
+		return record;
 	
 	}
 
 	public ActionRecord write(int keyLength, int transactionSize) {
 		
-		//TODO failure is possible - add a check
-		
 		//generate a list of keys up to the transaction size
 		final List<String> keys = KeyGenerator.randomKeys(transactionSize, keyLength);
 		
 		final ActionRecord record = new ActionRecord();
 		
+		Transaction tr1 = db.createTransaction();
+		record.setSuccess(true);
 		
-		//Use the DB API to read a single line.
-	    return db.run(new Function<Transaction, ActionRecord>() {
-	    	
-	    		    	
-	    	/** START TRANSACTION *********************/
-		    public ActionRecord apply(Transaction tr) {
-		    	
-		    	record.setAttemptsTaken(record.getAttemptsTaken()+1);
-		    	
-		    	//For every key in the list do a read in this transaction
-		    	for(String key: keys ){
-		    		tr.set(Tuple.from("class", key).pack(), encodeInt(-1));
-		    	}
-		    	
-				return record;
-		    }
-		    /** END TRANSACTION   *********************/
-	    
-	    });	
+		//Do it via blocking (GET) (Pessimistic locking)
+		try {
+		
+			for(String key: keys ){
+				tr1.set(Tuple.from("class", key).pack(), encodeInt(-1));
+			}
+			
+			//Blocks until a value is set on this Future and returns it.
+			tr1.commit().get();
+			record.setAttemptsTaken(record.getAttemptsTaken()+1);
+			
+		}catch (FDBException e){
+
+			//Fail!
+			record.setSuccess(false);
+			
+		}
+		
+		return record;
 	}
 
 	public ActionRecord readModifyWrite(int keyLength, int transactionSize) {
 		
-		//TODO failure is possible - add a check
 		
+		//TODO this needs finishing. 
 		//generate a list of keys up to the transaction size
 		final List<String> keys = KeyGenerator.randomKeys(transactionSize, keyLength);
 		final ActionRecord record = new ActionRecord();
-				
-	    return db.run(new Function<Transaction, ActionRecord>() {
-	    	
-	    	/** START TRANSACTION *********************/
-		    public ActionRecord apply(Transaction tr) {
-		    	
-		    	record.setAttemptsTaken(record.getAttemptsTaken()+1);
-		    	
-		    	for(String key: keys ){
-		    		tr.set(Tuple.from("class", key).pack(), encodeInt(decodeInt(tr.get(Tuple.from("class", key).pack()).get()) + 1));
-		    	}
-		    	
-				return record;
-		    }
-		    /** END TRANSACTION   *********************/
-	    
-	    });	
+		
+		Transaction tr1 = db.createTransaction();
+		record.setSuccess(true);
+		
+		//Do it via blocking (GET) (Pessimistic locking)
+		try {
+		
+			for(String key: keys ){
+	    		tr1.set(Tuple.from("class", key).pack(), encodeInt(decodeInt(tr1.get(Tuple.from("class", key).pack()).get()) + 1));
+			}
+			
+			//Blocks until a value is set on this Future and returns it.
+			tr1.commit().get();
+			record.setAttemptsTaken(record.getAttemptsTaken()+1);
+			
+		}catch (FDBException e){
+
+			//Fail!
+			record.setSuccess(false);
+			
+		}
+		
+		return record;
 	}
 	
-    /**
+	/**
      * encode and int ready for FDB storage
      * @param value
      * @return
