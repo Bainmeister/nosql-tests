@@ -21,6 +21,9 @@
  */
 package org.jboss.sdb.nosqltest.dbmachines;
 
+import java.util.HashMap;
+import java.util.List;
+
 import org.jboss.sdb.nosqltest.perf.ActionRecord;
 
 /**
@@ -41,13 +44,20 @@ public interface DBMachine {
 	void disconnectDB();
 	
 	/**
+	 * Get numberOfKeys from the database
+	 * @param numberOfkeys
+	 * @return
+	 */
+	HashMap<String, String> getKeysFromDB(int numberOfkeys);
+	
+	/**
 	 * Performs (transactionSize) reads against the database that is currently connected.
 	 *  
 	 * @param  keyLength The length of a key - "00" = 2, "000" = 3, "0000" = 4
 	 * @param  transActionSize The number of actions within the transaction
 	 * @return the attempts taken to complete the transaction
 	 */
-	ActionRecord read(int keyLength, int transactionSize);
+	ActionRecord read(List<String> keys, int waitMillis);
 		
 	/**
 	 * Performs (transactionSize) updates to the database that is currently connected.
@@ -56,7 +66,13 @@ public interface DBMachine {
 	 * @param  transActionSize The number of actions within the transaction
 	 * @return the attempts taken to complete the transaction
 	 */
-	ActionRecord write(int keyLength, int transactionSize);
+	ActionRecord update(List<String> keys, int waitMillis);
+	
+	/**
+	 * Performs an insert to the db;
+	 * @return
+	 */
+	ActionRecord insert(List<String> values, int waitMillis);
 	
 	/**
 	 * Performs (transactionSize) read and write operations to the database that is 
@@ -66,6 +82,16 @@ public interface DBMachine {
 	 * @param  transActionSize The number of actions within the transaction
 	 * @return the attempts taken to complete the transaction
 	 */
-	ActionRecord readModifyWrite(int keyLength, int transactionSize);
+	ActionRecord readModifyWrite(List<String> keys, int waitMillis);
+	
+	ActionRecord balanceTransfer(String key1, String key2, int waitMillis);
+	
+	ActionRecord incrementalUpdate(List<String> keys, int waitMillis);
+	
+	ActionRecord writeLog(int numberToWrite, int waitMillis);
+	
+	ActionRecord readLog(int numberToRead, int waitMillis);
+	
+	void addTable(String name);
 	
 }

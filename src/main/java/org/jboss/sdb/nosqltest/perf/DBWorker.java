@@ -21,17 +21,20 @@
  */
 package org.jboss.sdb.nosqltest.perf;
 
-
-
 import io.narayana.perf.Result;
 import io.narayana.perf.Worker;
 
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.jboss.sdb.nosqltest.dbkeygen.KeyStore;
 import org.jboss.sdb.nosqltest.dbmachines.DBMachine;
-import org.jboss.sdb.nosqltest.dbmachines.FDBASyncNoRetry;
-import org.jboss.sdb.nosqltest.dbmachines.FDBBlockingNoRetry;
-import org.jboss.sdb.nosqltest.dbmachines.FDBStandard;
+import org.jboss.sdb.nosqltest.dbmachines.FoundationDBASyncNoRetry;
+import org.jboss.sdb.nosqltest.dbmachines.FoundationDBBlockingNoRetry;
+import org.jboss.sdb.nosqltest.dbmachines.FoundationDB;
+import org.jboss.sdb.nosqltest.dbmachines.TokuMXOptimist;
+import org.jboss.sdb.nosqltest.dbmachines.TokuMXPessimist;
+import org.jboss.sdb.nosqltest.dbmachines.TokuMX;
 
 
 /**
@@ -58,83 +61,148 @@ public class DBWorker<T> implements Worker<T>{
 	final public static int MONGODB = 20;
 	final public static int MONGODB_COMPENSATION = 20;
 	
-	private int keyLength;
+	final public static int TOKUMX = 30;
+	final public static int TOKUMX_ACID_OC = 31;
+	final public static int TOKUMX_ACID_PC = 32;
+	final public static int TOKUMX_COMPEN = 33;
+	
 	private int dbType;
+	
 	private int chanceOfRead; 
 	private int chanceOfWrite; 
 	private int chanceOfReadModifyWrite; 
+	private int chanceOfBalanceTransfer;
+	private int chanceOfIncrementalUpdate;
+	
+	private int millisBetweenActions;
+	
 	private int minTransactionSize;
 	private int maxTransactionSize;
 	
-	DBWorker(int keyLength, 
-				int dbType, 
+	private KeyStore keys; 
+	
+	private int writeToLogs;
+	
+	DBWorker(	int dbType, 
 				int chanceOfRead, 
 				int chanceOfWrite, 
-				int chanceOfReadModifyWrite, 
+				int chanceOfReadModifyWrite,
+				int chanceOfBalanceTransfer,
+				int chanceOfIncrementalUpdate,
 				int minTransactionSize,
-				int maxTransactionSize){
+				int maxTransactionSize,
+				int millisBetweenActions,
+				KeyStore availibleKeys,
+				int writeToLogs){
 		
 		//Set the Parameters
-		this.keyLength = keyLength;
 		this.dbType = dbType;
+		
 		this.chanceOfRead = chanceOfRead; 
 		this.chanceOfWrite = chanceOfWrite; 
 		this.chanceOfReadModifyWrite = chanceOfReadModifyWrite; 
+		this.chanceOfBalanceTransfer = chanceOfBalanceTransfer;
+		this.chanceOfIncrementalUpdate = chanceOfIncrementalUpdate;
+		
+		
+		this.millisBetweenActions = millisBetweenActions;
 		this.minTransactionSize = minTransactionSize;
 		this.maxTransactionSize = maxTransactionSize;
+		this.keys = availibleKeys;
+		this.writeToLogs = writeToLogs;
+		
 		
 		//Set up the relevant Database Machine
 		if (dbType == FDB){
-			machine = new FDBStandard();
+			machine = new FoundationDB();
 		}else if (dbType == FDB_BLOCK_NO_RETRY){
-			machine = new FDBBlockingNoRetry();
+			//machine = new FDBBlockingNoRetry();
 		}else if (dbType == FDB_ASYNC_NO_RETRY){
-			machine = new FDBASyncNoRetry();
+			//machine = new FDBASyncNoRetry();
 		}else if (dbType == MONGODB){
 			//machine = new MongoDBMachine();
-		}			
+		}else if (dbType == TOKUMX){
+			machine = new TokuMX();
+		}else if (dbType == TOKUMX_ACID_OC)	{
+			machine = new TokuMXOptimist();
+		}else if (dbType == TOKUMX_ACID_PC)	{
+			machine = new TokuMXPessimist();
+		}
+					
 		
 		//Connect the DB
 		machine.connectDB();
+		
+		//Set up some log tables 
+		for (int i = 0; i > writeToLogs; i++){
+			machine.addTable("Log"+i);
+		}			
+		
+		if (chanceOfBalanceTransfer > 0 &&(this.minTransactionSize == 2||this.maxTransactionSize == 2)){
+			//System.out.println("Balance Transfer may occur, setting transaction size to 2.");
+			this.minTransactionSize = 2;
+			this.maxTransactionSize = 2;
+		}
+
 	}
 	
 	public T doWork(T context, int niters, Result<T> opts) {
     	
-		//No errors yet - ignore past errors - only interested in this run
 		opts.setErrorCount(0);
-		
-		//Get configuration
-    	final int keyLength = this.keyLength;
-    	final int transactionSize = ThreadLocalRandom.current().nextInt(this.maxTransactionSize)+1;  //Range 1 - Max rather than 0 to Max-1
-    	    	
-    	//Get Random number to assign task
-    	final int rand1 = ThreadLocalRandom.current() .nextInt(100);
-    	    	
-    	ActionRecord record = new ActionRecord();
 
-    	//Call the relevant method, depending upon ChanceOfProcess and the transactionSize
+		
+		ActionRecord record = new ActionRecord();
+		ActionRecord logRecord = new ActionRecord();
+		
+		final int transactionSize = ThreadLocalRandom.current().nextInt(this.maxTransactionSize)+this.minTransactionSize; 
+		List<String> keysToUse = keys.getRandomKeyList(transactionSize, true);  
+		
+		
+		//If this is a logger 
+		if(writeToLogs > 0 && ThreadLocalRandom.current() .nextInt(1000)<1){
+			System.out.println("Log Reader");
+			
+			record = machine.readLog(3,millisBetweenActions);
+			workTimeMillis = System.currentTimeMillis();
+			return null;
+		}
+		
+		if (keysToUse.size()<2){
+			System.out.println("whoa there...");
+		}
+		
+		
+    	//Get Random number to assign task
+    	final int rand1 = ThreadLocalRandom.current() .nextInt(1000);
     	if (rand1< chanceOfRead){
     		//Reader
-    		record = machine.read(keyLength, transactionSize);
+    		record = machine.read(keysToUse,millisBetweenActions);
     	}else if(rand1 < chanceOfWrite){
     		//Writer
-    		record = machine.write(keyLength, transactionSize);
+    		record = machine.update(keysToUse, millisBetweenActions);
     	}else if(rand1 < chanceOfReadModifyWrite){
     		//Reader + Writer
-    		record = machine.readModifyWrite(keyLength, transactionSize);
+    		record = machine.readModifyWrite(keysToUse, millisBetweenActions);
+    	}else if (rand1 < chanceOfBalanceTransfer){
+    		record = machine.balanceTransfer(keysToUse.get(0), keysToUse.get(1), millisBetweenActions);
+    	}else if (rand1 < chanceOfIncrementalUpdate){
+    		record = machine.incrementalUpdate(keysToUse, millisBetweenActions);
     	}
     	
     	
+    	//Write the logs (if there are any to write)
+    	if (writeToLogs>0)
+    		logRecord = machine.writeLog(writeToLogs, millisBetweenActions);
     	
-    	if (!record.isSuccess()){
+    	
+    	//Check for success
+    	if ( record ==null || !record.isSuccess() || 
+    			(writeToLogs >0 && (logRecord ==null || !logRecord.isSuccess()) )){
     		
     		opts.incrementErrorCount();
-
     	}
     		
-    	
-    	//System.out.println("Transaction Size: " + transactionSize + "  Attempts: "+ record.getAttemptsTaken());
-    	
+
         workTimeMillis = System.currentTimeMillis();
 
         return null;
@@ -169,20 +237,6 @@ public class DBWorker<T> implements Worker<T>{
 	 */
 	public long getFiniTimeMillis() {
 		return finiTimeMillis;
-	}
-
-	/**
-	 * @return the keyLength
-	 */
-	public int getKeyLength() {
-		return keyLength;
-	}
-
-	/**
-	 * @param keyLength the keyLength to set
-	 */
-	public void setKeyLength(int keyLength) {
-		this.keyLength = keyLength;
 	}
 
 	/**

@@ -21,9 +21,10 @@
  */
 package org.jboss.sdb.nosqltest.perf;
 
+import org.jboss.sdb.nosqltest.dbkeygen.KeyStore;
+import org.jboss.sdb.nosqltest.dbkeygen.MongoKeys;
 import org.junit.Test;
 
-import io.narayana.perf.PerformanceTester;
 import io.narayana.perf.Result;
 
 /**
@@ -34,39 +35,67 @@ import io.narayana.perf.Result;
 public class PerformanceTest {
 
     //***********************************************************
-    //STANDARD PARAMETERS    
-    final int threadCount = 10;
-    final int batchSize = 1;
-    final int numberOfCalls = 1000;
+    int threadCount = 10;
+    int batchSize = 1;
+    int numberOfCalls = 10000;
+    //int keyLength = 2;
+    int dbType = DBWorker.TOKUMX_ACID_OC;
+   
+    int chanceOfRead = 1;
+    int chanceOfWrite =0;
+    int chanceOfBalanceTransfer = 999;
+
+    int chanceOfReadModifyWrite = 0;
+    int chanceOfIncrementalUpdate =0; 
     
+    int minTransactionSize = 2;
+    int maxTransactionSize = 2; 
     
-    //DB Parameters
-    final int keyLength = 2;
-    final int dbType = DBWorker.FDB_ASYNC_NO_RETRY;
-    final int chanceOfRead = 0;
-    final int chanceOfWrite = 0;
-    final int chanceOfReadModifyWrite = 100;
-    final int minTransactionSize = 1;
-    final int maxTransactionSize = 1;   
+    int millisBetweenActions = 10;	
+    int contendedRecords =2; 	//the more records, the lower the contention
     
-    
-    //TODO - Size of Read, Size of Write (Min/Max)
+    int writeToLogs = 0;
     //***********************************************************
-	
     
     @Test
     public void testPerformanceTester() {
     	
-        System.out.println("Begginging Test");
+    	System.out.println("Begin");
+    	for (int i =0; i<10;i++){
     	
-        //Setup the template worker
-        DBWorker<Void> worker = new DBWorker<Void>(keyLength, dbType, chanceOfRead,	chanceOfWrite, chanceOfReadModifyWrite, minTransactionSize, maxTransactionSize);
-        
-        //Run the test
-        Result<Void> measurement = new Result<Void>(threadCount, numberOfCalls, batchSize).measure(worker, worker, 100);
-        
-        System.out.println(measurement);
-        
+    	//Set up some keys to use.  This allows us to identify x rows that exist and are ready for use and
+    	// allows us to avoid touching the db unnecessarily during the tests. 
+    	//TODO implement other stores
+    	//System.out.println("Generating Keys...");
+    	KeyStore keyGen = new MongoKeys();   
+		keyGen.addKeysFromDB(contendedRecords,dbType);
+		
+		//Setup the template worker
+		//System.out.println("Defining worker template...");
+		DBWorker<Void> worker = new DBWorker<Void>(	dbType, 
+													chanceOfRead,	
+													chanceOfWrite, 
+													chanceOfReadModifyWrite, 
+													chanceOfBalanceTransfer,
+													chanceOfIncrementalUpdate,
+													minTransactionSize, 
+													maxTransactionSize, 
+													millisBetweenActions,
+													keyGen, writeToLogs);
+	    
+	    
+	    //Run the test
+		//System.out.println("Running Tests...");
+	    Result<Void> measurement = new Result<Void>(threadCount, numberOfCalls, batchSize).measure(worker, worker, 100);
+		
+	    //Do something with the results
+		//System.out.println("Tests complete.");
+	    System.out.println(measurement);
+    	}
+    	System.out.println("End");
     }
+    
+    
+    
  
 }

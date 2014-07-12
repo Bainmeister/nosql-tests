@@ -21,17 +21,12 @@
  */
 package org.jboss.sdb.nosqltest.dbmachines;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 
 import org.jboss.sdb.nosqltest.perf.ActionRecord;
 
-import com.foundationdb.Database;
-import com.foundationdb.FDB;
 import com.foundationdb.FDBException;
 import com.foundationdb.Transaction;
-import com.foundationdb.async.Function;
-import com.foundationdb.async.Future;
 import com.foundationdb.tuple.Tuple;
 
 
@@ -40,26 +35,22 @@ import com.foundationdb.tuple.Tuple;
  *
  * A FoundationDB specific implementation of DBMachine. Runs the API as standard.
  */
-public class FDBASyncNoRetry implements DBMachine {
-
-    //private Database db;
-    private FDB fdb;
-    private Database db;
+public class FoundationDBBlockingNoRetry extends FoundationDB {
 	
-	public void connectDB() {
-      fdb = FDB.selectAPIVersion(200);
-      db = fdb.open(); 
+
+	public ActionRecord insert(List<String> values) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
-	public void disconnectDB() {
-		// Don't need to worry about this in FDB
-		
+	public ActionRecord writeLog(int numberToWrite) {
+		// TODO Auto-generated method stub
+		return null;
 	}
-	
-	public ActionRecord read(int keyLength, int transactionSize) {
-		
+
+	public ActionRecord read(List<String> keys, int waitMillis) {
 		final ActionRecord record = new ActionRecord();
-		final List<String> keys = KeyGenerator.randomKeys(transactionSize, keyLength);
+		//final List<String> keys = KeyGenerator.randomKeys(transactionSize, keyLength);
 		
 		Transaction tr1 = db.createTransaction();
 		record.setSuccess(true);
@@ -83,13 +74,11 @@ public class FDBASyncNoRetry implements DBMachine {
 		}
 		
 		return record;
-	
 	}
 
-	public ActionRecord write(int keyLength, int transactionSize) {
-		
+	public ActionRecord update(List<String> keys, int waitMillis) {
 		//generate a list of keys up to the transaction size
-		final List<String> keys = KeyGenerator.randomKeys(transactionSize, keyLength);
+		//final List<String> keys = KeyGenerator.randomKeys(transactionSize, keyLength);
 		
 		final ActionRecord record = new ActionRecord();
 		
@@ -117,12 +106,15 @@ public class FDBASyncNoRetry implements DBMachine {
 		return record;
 	}
 
-	public ActionRecord readModifyWrite(int keyLength, int transactionSize) {
-		
-		
+	public ActionRecord insert(List<String> values, int waitMillis) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public ActionRecord readModifyWrite(List<String> keys, int waitMillis) {
 		//TODO this needs finishing. 
 		//generate a list of keys up to the transaction size
-		final List<String> keys = KeyGenerator.randomKeys(transactionSize, keyLength);
+		//final List<String> keys = KeyGenerator.randomKeys(transactionSize, keyLength);
 		final ActionRecord record = new ActionRecord();
 		
 		Transaction tr1 = db.createTransaction();
@@ -148,27 +140,25 @@ public class FDBASyncNoRetry implements DBMachine {
 		
 		return record;
 	}
-	
-	/**
-     * encode and int ready for FDB storage
-     * @param value
-     * @return
-     */
-	private static byte[] encodeInt(int value) {
-		byte[] output = new byte[4];
-		ByteBuffer.wrap(output).putInt(value);	
-		return output;
+
+	public ActionRecord balanceTransfer(String key1, String key2, int waitMillis) {
+		// TODO Auto-generated method stub
+		return null;
 	}
-	
-	/**
-	 * Decode a byte into an int from FDB storage.
-	 * @param value
-	 * @return
-	 */
-	private static int decodeInt(byte[] value) {
-		if (value.length != 4)
-			throw new IllegalArgumentException("Array must be of size 4");
-		return ByteBuffer.wrap(value).getInt();
-	 }
+
+	public ActionRecord incrementalUpdate(List<String> keys, int waitMillis) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public ActionRecord writeLog(int numberToWrite, int waitMillis) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public ActionRecord readLog(int numberToRead, int waitMillis) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 }
